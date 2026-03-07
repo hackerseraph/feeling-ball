@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Feeling Ball</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #000000;
+      --green: #39ff14;
+      --green-dim: rgba(57, 255, 20, 0.35);
+      --text: #9dff8a;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      background: radial-gradient(circle at 50% 35%, #071706 0%, var(--bg) 50%);
+      color: var(--text);
+      font-family: "Press Start 2P", "Courier New", monospace;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding-top: max(0.75rem, env(safe-area-inset-top));
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+
+    .app {
+      width: min(92vw, 920px);
+      display: grid;
+      grid-template-rows: auto auto auto;
+      gap: 1.2rem;
+      place-items: center;
+      text-align: center;
+      padding: 1rem;
+      margin-inline: auto;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(0.8rem, 1.5vw, 1rem);
+      color: var(--green);
+      text-shadow: 0 0 10px rgba(57, 255, 20, 0.65);
+      letter-spacing: 0.05em;
+    }
+
+    .viewport {
+      width: min(90vw, 600px);
+      aspect-ratio: 1;
+      border: 1px solid var(--green-dim);
+      box-shadow:
+        0 0 26px rgba(57, 255, 20, 0.17) inset,
+        0 0 20px rgba(57, 255, 20, 0.12);
+      background: radial-gradient(circle at 50% 35%, rgba(20, 80, 20, 0.15), rgba(0, 0, 0, 0.8));
+      position: relative;
+      touch-action: none;
+      user-select: none;
+      cursor: grab;
+    }
+
+    .viewport.dragging {
+      cursor: grabbing;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .feeling {
+      min-height: 2.2rem;
+      font-size: clamp(0.85rem, 2.4vw, 1.2rem);
+      color: var(--green);
+      text-shadow:
+        0 0 8px rgba(57, 255, 20, 0.95),
+        0 0 18px rgba(57, 255, 20, 0.35);
+      letter-spacing: 0.09em;
+    }
+
+    .reflection {
+      min-height: 1.2rem;
+      font-size: clamp(0.5rem, 1.5vw, 0.65rem);
+      color: var(--text);
+      opacity: 0.9;
+      letter-spacing: 0.05em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+      white-space: nowrap;
+    }
+
+    .reflection-typed {
+      display: inline-block;
+    }
+
+    .reflection-cursor {
+      display: inline-block;
+      width: clamp(0.5rem, 1.7vw, 0.7rem);
+      height: 1.2em;
+      background: currentColor;
+      opacity: 0.92;
+      flex: 0 0 auto;
+      animation: cursorBlink 0.9s steps(1, end) infinite;
+    }
+
+    .reflection-cursor.hidden {
+      opacity: 0;
+      animation: none;
+    }
+
+    @keyframes cursorBlink {
+      0%, 49% {
+        opacity: 0.92;
+      }
+
+      50%, 100% {
+        opacity: 0;
+      }
+    }
+
+    button {
+      border: 2px solid var(--green);
+      background: #051305;
+      color: var(--green);
+      font: inherit;
+      font-size: clamp(0.65rem, 1.7vw, 0.8rem);
+      padding: 0.8rem 1.2rem;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      transition: transform 0.08s ease, box-shadow 0.15s ease;
+      box-shadow: 0 0 10px rgba(57, 255, 20, 0.35);
+    }
+
+    button:hover:enabled {
+      box-shadow: 0 0 18px rgba(57, 255, 20, 0.65);
+    }
+
+    button:active:enabled {
+      transform: scale(0.98);
+    }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 700px) {
+      body {
+        align-items: stretch;
+      }
+
+      .app {
+        width: 100%;
+        max-width: 520px;
+        gap: 0.9rem;
+        padding: 0.75rem 0.75rem 1rem;
+      }
+
+      .viewport {
+        width: min(94vw, 460px);
+      }
+
+      .feeling {
+        min-height: 1.8rem;
+      }
+
+      button {
+        width: min(92vw, 320px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>THERAPY FEELING BALL</h1>
+
+    <section class="viewport">
+      <canvas id="ballCanvas" aria-label="Wireframe feeling ball"></canvas>
+    </section>
+
+    <div id="feelingText" class="feeling">PRESS ROLL THE BALL</div>
+    <div id="reflectionText" class="reflection"></div>
+
+    <button id="rollButton" type="button">Roll the Ball</button>
+  </main>
+
+  <script>
+    const feelings = [
+      "HAPPY", "SAD", "ANGRY", "WORRIED", "CALM", "EXCITED", "LONELY", "GRATEFUL",
+      "CONFUSED", "PROUD", "EMBARRASSED", "HOPEFUL", "FRUSTRATED", "RELIEVED", "AFRAID", "CURIOUS",
+      "DISAPPOINTED", "CONTENT", "OVERWHELMED", "LOVED", "NERVOUS", "TIRED", "JEALOUS", "PEACEFUL"
+    ];
+
+    const canvas = document.getElementById("ballCanvas");
+    const ctx = canvas.getContext("2d");
+    const feelingText = document.getElementById("feelingText");
+    const reflectionText = document.getElementById("reflectionText");
+    const rollButton = document.getElementById("rollButton");
+    const viewport = document.querySelector(".viewport");
+    const reflectionTyped = document.createElement("span");
+    reflectionTyped.className = "reflection-typed";
+    const reflectionCursor = document.createElement("span");
+    reflectionCursor.className = "reflection-cursor";
+    reflectionCursor.classList.add("hidden");
+    reflectionCursor.setAttribute("aria-hidden", "true");
+    reflectionText.replaceChildren(reflectionTyped, reflectionCursor);
+
+    function vectorAdd(left, right) {
+      return { x: left.x + right.x, y: left.y + right.y, z: left.z + right.z };
+    }
+
+    function vectorSubtract(left, right) {
+      return { x: left.x - right.x, y: left.y - right.y, z: left.z - right.z };
+    }
+
+    function vectorScale(point, scalar) {
+      return { x: point.x * scalar, y: point.y * scalar, z: point.z * scalar };
+    }
+
+    function vectorDot(left, right) {
+      return left.x * right.x + left.y * right.y + left.z * right.z;
+    }
+
+    function vectorCross(left, right) {
+      return {
+        x: left.y * right.z - left.z * right.y,
+        y: left.z * right.x - left.x * right.z,
+        z: left.x * right.y - left.y * right.x
+      };
+    }
+
+    function vectorLength(point) {
+      return Math.sqrt(vectorDot(point, point));
+    }
+
+    function normalizeVector(point) {
+      const length = vectorLength(point);
+      if (length === 0) {
+        return { x: 0, y: 0, z: 0 };
+      }
+      return vectorScale(point, 1 / length);
+    }
+
+    function vectorLerp(start, end, amount) {
+      return vectorAdd(vectorScale(start, 1 - amount), vectorScale(end, amount));
+    }
+
+    function createSoccerWireframe() {
+      const goldenRatio = (1 + Math.sqrt(5)) / 2;
+      const baseVertices = [
+        { x: -1, y: goldenRatio, z: 0 },
+        { x: 1, y: goldenRatio, z: 0 },
+        { x: -1, y: -goldenRatio, z: 0 },
+        { x: 1, y: -goldenRatio, z: 0 },
+        { x: 0, y: -1, z: goldenRatio },
+        { x: 0, y: 1, z: goldenRatio },
+        { x: 0, y: -1, z: -goldenRatio },
+        { x: 0, y: 1, z: -goldenRatio },
+        { x: goldenRatio, y: 0, z: -1 },
+        { x: goldenRatio, y: 0, z: 1 },
+        { x: -goldenRatio, y: 0, z: -1 },
+        { x: -goldenRatio, y: 0, z: 1 }
+      ].map(normalizeVector);
+
+      const baseFaces = [
+        [0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11],
+        [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
+        [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
+        [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]
+      ];
+
+      const neighborMap = Array.from({ length: baseVertices.length }, () => new Set());
+      const directedVertexIndex = new Map();
+      const truncatedVertices = [];
+      const polygonFaces = [];
+      const truncation = 1 / 3;
+
+      function getDirectedVertex(fromIndex, toIndex) {
+        const key = `${fromIndex}_${toIndex}`;
+        if (directedVertexIndex.has(key)) {
+          return directedVertexIndex.get(key);
+        }
+
+        const fromPoint = baseVertices[fromIndex];
+        const toPoint = baseVertices[toIndex];
+        const pointOnEdge = vectorLerp(fromPoint, toPoint, truncation);
+        const normalizedPoint = normalizeVector(pointOnEdge);
+        const vertexIndex = truncatedVertices.push(normalizedPoint) - 1;
+        directedVertexIndex.set(key, vertexIndex);
+        neighborMap[fromIndex].add(toIndex);
+        return vertexIndex;
+      }
+
+      function registerBaseEdge(startIndex, endIndex) {
+        getDirectedVertex(startIndex, endIndex);
+        getDirectedVertex(endIndex, startIndex);
+      }
+
+      for (const triangle of baseFaces) {
+        const [a, b, c] = triangle;
+        registerBaseEdge(a, b);
+        registerBaseEdge(b, c);
+        registerBaseEdge(c, a);
+      }
+
+      for (let centerIndex = 0; centerIndex < baseVertices.length; centerIndex += 1) {
+        const center = baseVertices[centerIndex];
+        const fallbackAxis = Math.abs(center.y) < 0.9
+          ? { x: 0, y: 1, z: 0 }
+          : { x: 1, y: 0, z: 0 };
+        const tangentAxisX = normalizeVector(vectorCross(center, fallbackAxis));
+        const tangentAxisY = normalizeVector(vectorCross(center, tangentAxisX));
+
+        const orderedNeighbors = Array.from(neighborMap[centerIndex])
+          .map((neighborIndex) => {
+            const neighbor = baseVertices[neighborIndex];
+            const projected = vectorSubtract(neighbor, vectorScale(center, vectorDot(neighbor, center)));
+            const tangentDirection = normalizeVector(projected);
+            const angle = Math.atan2(
+              vectorDot(tangentDirection, tangentAxisY),
+              vectorDot(tangentDirection, tangentAxisX)
+            );
+            return { neighborIndex, angle };
+          })
+          .sort((left, right) => left.angle - right.angle);
+
+        const pentagon = orderedNeighbors.map((entry) => directedVertexIndex.get(`${centerIndex}_${entry.neighborIndex}`));
+        polygonFaces.push(pentagon);
+      }
+
+      for (const triangle of baseFaces) {
+        const [a, b, c] = triangle;
+        const hexagon = [
+          directedVertexIndex.get(`${a}_${b}`),
+          directedVertexIndex.get(`${b}_${a}`),
+          directedVertexIndex.get(`${b}_${c}`),
+          directedVertexIndex.get(`${c}_${b}`),
+          directedVertexIndex.get(`${c}_${a}`),
+          directedVertexIndex.get(`${a}_${c}`)
+        ];
+        polygonFaces.push(hexagon);
+      }
+
+      const uniqueEdges = new Set();
+      const wireEdges = [];
+
+      for (const face of polygonFaces) {
+        for (let pointIndex = 0; pointIndex < face.length; pointIndex += 1) {
+          const firstVertex = face[pointIndex];
+          const secondVertex = face[(pointIndex + 1) % face.length];
+          const edgeKey = firstVertex < secondVertex
+            ? `${firstVertex}_${secondVertex}`
+            : `${secondVertex}_${firstVertex}`;
+
+          if (!uniqueEdges.has(edgeKey)) {
+            uniqueEdges.add(edgeKey);
+            wireEdges.push([firstVertex, secondVertex]);
+          }
+        }
+      }
+
+      return {
+        vertices: truncatedVertices,
+        edges: wireEdges,
+        faces: polygonFaces
+      };
+    }
+
+    const soccerWireframe = createSoccerWireframe();
+
+    function resize() {
+      const size = viewport.clientWidth;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, Math.floor(size * dpr));
+      canvas.height = Math.max(1, Math.floor(size * dpr));
+      canvas.style.width = `${size}px`;
+      canvas.style.height = `${size}px`;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+    }
+
+    window.addEventListener("resize", resize);
+    resize();
+
+    let rolling = false;
+    let rollStart = 0;
+    const rollDuration = 3000;
+    let launchVelocity = { x: 0, y: 0, z: 0 };
+    let idleVelocity = { x: 0.3, y: 0.24, z: 0.15 };
+    let rotation = { x: 0, y: 0, z: 0 };
+    let feelingPool = [];
+    let lastFeeling = "";
+    let typingIntervalId = null;
+    let typedReflectionText = "";
+    const dragState = {
+      isDragging: false,
+      pointerId: null,
+      lastX: 0,
+      lastY: 0,
+      lastTime: 0,
+      velocity: { x: 0, y: 0, z: 0 },
+      distance: 0
+    };
+    let lastTime = performance.now();
+
+    function clampValue(value, minValue, maxValue) {
+      return Math.max(minValue, Math.min(maxValue, value));
+    }
+
+    function randomLaunchVelocity() {
+      const sign = () => (Math.random() < 0.5 ? -1 : 1);
+      return {
+        x: (8 + Math.random() * 4) * sign(),
+        y: (10 + Math.random() * 5) * sign(),
+        z: (6 + Math.random() * 3) * sign()
+      };
+    }
+
+    function normalizeLaunchVelocity(sourceVelocity) {
+      const hasNumericComponents = sourceVelocity
+        && Number.isFinite(sourceVelocity.x)
+        && Number.isFinite(sourceVelocity.y)
+        && Number.isFinite(sourceVelocity.z);
+
+      if (!hasNumericComponents) {
+        return randomLaunchVelocity();
+      }
+
+      const speed = vectorLength(sourceVelocity);
+      if (speed < 2.4) {
+        return randomLaunchVelocity();
+      }
+
+      const maxSpeed = 18;
+      const speedScale = speed > maxSpeed ? maxSpeed / speed : 1;
+      return {
+        x: clampValue(sourceVelocity.x * speedScale, -16, 16),
+        y: clampValue(sourceVelocity.y * speedScale, -16, 16),
+        z: clampValue(sourceVelocity.z * speedScale, -16, 16)
+      };
+    }
+
+    function shuffleFeelingsPool() {
+      const pool = [...feelings];
+      for (let index = pool.length - 1; index > 0; index -= 1) {
+        const randomIndex = Math.floor(Math.random() * (index + 1));
+        const temp = pool[index];
+        pool[index] = pool[randomIndex];
+        pool[randomIndex] = temp;
+      }
+
+      if (pool.length > 1 && pool[pool.length - 1] === lastFeeling) {
+        const swapIndex = Math.floor(Math.random() * (pool.length - 1));
+        const temp = pool[swapIndex];
+        pool[swapIndex] = pool[pool.length - 1];
+        pool[pool.length - 1] = temp;
+      }
+
+      return pool;
+    }
+
+    function pickFeeling() {
+      if (feelingPool.length === 0) {
+        feelingPool = shuffleFeelingsPool();
+      }
+
+      const selectedFeeling = feelingPool.pop();
+      lastFeeling = selectedFeeling;
+      return selectedFeeling;
+    }
+
+    function stopReflectionAnimation() {
+      if (typingIntervalId !== null) {
+        clearInterval(typingIntervalId);
+        typingIntervalId = null;
+      }
+    }
+
+    function renderReflectionWithCursor() {
+      reflectionTyped.textContent = typedReflectionText;
+    }
+
+    function typeReflectionMessage(fullText) {
+      stopReflectionAnimation();
+      typedReflectionText = "";
+      reflectionCursor.classList.add("hidden");
+      renderReflectionWithCursor();
+
+      let charIndex = 0;
+      typingIntervalId = setInterval(() => {
+        if (charIndex >= fullText.length) {
+          clearInterval(typingIntervalId);
+          typingIntervalId = null;
+          reflectionCursor.classList.remove("hidden");
+          return;
+        }
+        typedReflectionText += fullText[charIndex];
+        charIndex += 1;
+        renderReflectionWithCursor();
+      }, 48);
+    }
+
+    function startRoll(launchFromDrag = null) {
+      if (rolling || dragState.isDragging) return;
+
+      rolling = true;
+      rollStart = performance.now();
+      launchVelocity = launchFromDrag
+        ? normalizeLaunchVelocity(launchFromDrag)
+        : randomLaunchVelocity();
+
+      feelingText.textContent = "ROLLING...";
+      stopReflectionAnimation();
+      typedReflectionText = "";
+      renderReflectionWithCursor();
+      reflectionCursor.classList.add("hidden");
+      rollButton.disabled = true;
+      rollButton.textContent = "Rolling...";
+    }
+
+    rollButton.addEventListener("click", () => startRoll());
+
+    function onPointerDown(event) {
+      if (rolling || dragState.isDragging) return;
+
+      dragState.isDragging = true;
+      dragState.pointerId = event.pointerId;
+      dragState.lastX = event.clientX;
+      dragState.lastY = event.clientY;
+      dragState.lastTime = performance.now();
+      dragState.velocity = { x: 0, y: 0, z: 0 };
+      dragState.distance = 0;
+
+      viewport.classList.add("dragging");
+      if (viewport.setPointerCapture) {
+        viewport.setPointerCapture(event.pointerId);
+      }
+      event.preventDefault();
+    }
+
+    function onPointerMove(event) {
+      if (!dragState.isDragging || event.pointerId !== dragState.pointerId) return;
+
+      const now = performance.now();
+      const deltaX = event.clientX - dragState.lastX;
+      const deltaY = event.clientY - dragState.lastY;
+      const deltaTime = Math.max((now - dragState.lastTime) / 1000, 1 / 240);
+      const dragRotateScale = 0.012;
+
+      dragState.distance += Math.hypot(deltaX, deltaY);
+
+      const deltaRotationX = deltaY * dragRotateScale;
+      const deltaRotationY = deltaX * dragRotateScale;
+      const deltaRotationZ = (deltaX - deltaY) * dragRotateScale * 0.28;
+
+      rotation.x += deltaRotationX;
+      rotation.y += deltaRotationY;
+      rotation.z += deltaRotationZ;
+
+      dragState.velocity = {
+        x: deltaRotationX / deltaTime,
+        y: deltaRotationY / deltaTime,
+        z: deltaRotationZ / deltaTime
+      };
+
+      dragState.lastX = event.clientX;
+      dragState.lastY = event.clientY;
+      dragState.lastTime = now;
+      event.preventDefault();
+    }
+
+    function onPointerEnd(event) {
+      if (!dragState.isDragging || event.pointerId !== dragState.pointerId) return;
+
+      const releaseVelocity = {
+        x: dragState.velocity.x * 1.15,
+        y: dragState.velocity.y * 1.15,
+        z: dragState.velocity.z * 1.15
+      };
+      const movedEnough = dragState.distance > 10;
+      const capturedPointerId = dragState.pointerId;
+
+      dragState.isDragging = false;
+      dragState.pointerId = null;
+      dragState.distance = 0;
+      viewport.classList.remove("dragging");
+
+      if (capturedPointerId !== null && viewport.releasePointerCapture) {
+        try {
+          viewport.releasePointerCapture(capturedPointerId);
+        } catch (_error) {
+        }
+      }
+
+      if (movedEnough) {
+        startRoll(releaseVelocity);
+      }
+    }
+
+    viewport.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointermove", onPointerMove, { passive: false });
+    window.addEventListener("pointerup", onPointerEnd);
+    window.addEventListener("pointercancel", onPointerEnd);
+
+    function rotatePoint(point, rotationX, rotationY, rotationZ) {
+      const cosX = Math.cos(rotationX);
+      const sinX = Math.sin(rotationX);
+      const cosY = Math.cos(rotationY);
+      const sinY = Math.sin(rotationY);
+      const cosZ = Math.cos(rotationZ);
+      const sinZ = Math.sin(rotationZ);
+
+      const yx = point.y * cosX - point.z * sinX;
+      const zx = point.y * sinX + point.z * cosX;
+
+      const xy = point.x * cosY + zx * sinY;
+      const zy = -point.x * sinY + zx * cosY;
+
+      const xz = xy * cosZ - yx * sinZ;
+      const yz = xy * sinZ + yx * cosZ;
+
+      return { x: xz, y: yz, z: zy };
+    }
+
+    function projectPoint(point, width, height, radiusPx) {
+      const distance = 3;
+      const perspective = distance / (distance - point.z);
+      return {
+        x: width * 0.5 + point.x * radiusPx * perspective,
+        y: height * 0.5 + point.y * radiusPx * perspective,
+        z: point.z,
+        perspective
+      };
+    }
+
+    function drawBall() {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      const radiusPx = Math.min(width, height) * 0.28;
+
+      ctx.clearRect(0, 0, width, height);
+
+      const rotatedVertices = soccerWireframe.vertices.map((point) =>
+        rotatePoint(point, rotation.x, rotation.y, rotation.z)
+      );
+      const projectedVertices = rotatedVertices.map((point) =>
+        projectPoint(point, width, height, radiusPx)
+      );
+
+      const facesToDraw = [];
+      for (let faceIndex = 0; faceIndex < soccerWireframe.faces.length; faceIndex += 1) {
+        const face = soccerWireframe.faces[faceIndex];
+        const a = rotatedVertices[face[0]];
+        const b = rotatedVertices[face[1]];
+        const c = rotatedVertices[face[2]];
+        const ab = vectorSubtract(b, a);
+        const ac = vectorSubtract(c, a);
+        const normal = vectorCross(ab, ac);
+        const avgZ = face.reduce((sum, vertexIndex) => sum + rotatedVertices[vertexIndex].z, 0) / face.length;
+
+        // Camera sits on +Z looking at origin, so visible faces have outward normals with +Z.
+        if (normal.z > 0) {
+          facesToDraw.push({
+            face,
+            avgZ,
+            isBlackPanel: face.length === 5
+          });
+        }
+      }
+
+      facesToDraw.sort((left, right) => left.avgZ - right.avgZ);
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(width * 0.5, height * 0.5, radiusPx * 1.03, 0, Math.PI * 2);
+      ctx.clip();
+
+      for (const faceData of facesToDraw) {
+        const points = faceData.face.map((vertexIndex) => projectedVertices[vertexIndex]);
+        let minX = Number.POSITIVE_INFINITY;
+        let maxX = Number.NEGATIVE_INFINITY;
+        let minY = Number.POSITIVE_INFINITY;
+        let maxY = Number.NEGATIVE_INFINITY;
+
+        ctx.beginPath();
+        for (let index = 0; index < points.length; index += 1) {
+          const point = points[index];
+          if (index === 0) {
+            ctx.moveTo(point.x, point.y);
+          } else {
+            ctx.lineTo(point.x, point.y);
+          }
+          if (point.x < minX) minX = point.x;
+          if (point.x > maxX) maxX = point.x;
+          if (point.y < minY) minY = point.y;
+          if (point.y > maxY) maxY = point.y;
+        }
+        ctx.closePath();
+
+        if (faceData.isBlackPanel) {
+          ctx.fillStyle = "rgba(0, 0, 0, 0.985)";
+          ctx.fill();
+
+          ctx.save();
+          ctx.clip();
+          const spacing = 10;
+          ctx.strokeStyle = "rgba(57, 255, 20, 0.1)";
+          ctx.lineWidth = 0.6;
+
+          for (let offset = minX - (maxY - minY); offset <= maxX + (maxY - minY); offset += spacing) {
+            ctx.beginPath();
+            ctx.moveTo(offset, minY);
+            ctx.lineTo(offset + (maxY - minY), maxY);
+            ctx.stroke();
+          }
+
+          for (let offset = minX; offset <= maxX + (maxY - minY); offset += spacing) {
+            ctx.beginPath();
+            ctx.moveTo(offset, maxY);
+            ctx.lineTo(offset + (maxY - minY), minY);
+            ctx.stroke();
+          }
+          ctx.restore();
+        } else {
+          ctx.fillStyle = "rgba(7, 22, 7, 0.5)";
+          ctx.fill();
+        }
+
+      }
+      ctx.restore();
+
+      const segments = [];
+      for (const edge of soccerWireframe.edges) {
+        const rotatedA = rotatedVertices[edge[0]];
+        const rotatedB = rotatedVertices[edge[1]];
+        const projectedA = projectedVertices[edge[0]];
+        const projectedB = projectedVertices[edge[1]];
+        const averageDepth = (rotatedA.z + rotatedB.z) * 0.5;
+        segments.push({ pa: projectedA, pb: projectedB, avgZ: averageDepth });
+      }
+
+      segments.sort((left, right) => left.avgZ - right.avgZ);
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(width * 0.5, height * 0.5, radiusPx * 1.03, 0, Math.PI * 2);
+      ctx.clip();
+
+      for (let index = 0; index < segments.length; index += 1) {
+        const segment = segments[index];
+        const depth = (segment.avgZ + 1) * 0.5;
+        const alpha = 0.1 + depth * 0.75;
+        const lineWidth = 0.6 + depth * 0.95;
+        ctx.beginPath();
+        ctx.moveTo(segment.pa.x, segment.pa.y);
+        ctx.lineTo(segment.pb.x, segment.pb.y);
+        ctx.strokeStyle = `rgba(57, 255, 20, ${alpha})`;
+        ctx.lineWidth = lineWidth;
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Add subtle sphere shading so the faceted mesh reads as a rounder ball.
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(width * 0.5, height * 0.5, radiusPx * 1.02, 0, Math.PI * 2);
+      ctx.clip();
+
+      const shade = ctx.createRadialGradient(
+        width * 0.42,
+        height * 0.36,
+        radiusPx * 0.15,
+        width * 0.5,
+        height * 0.5,
+        radiusPx * 1.08
+      );
+      shade.addColorStop(0, "rgba(95, 255, 110, 0.08)");
+      shade.addColorStop(0.45, "rgba(15, 50, 15, 0.05)");
+      shade.addColorStop(1, "rgba(0, 0, 0, 0.32)");
+      ctx.fillStyle = shade;
+      ctx.fillRect(
+        width * 0.5 - radiusPx * 1.2,
+        height * 0.5 - radiusPx * 1.2,
+        radiusPx * 2.4,
+        radiusPx * 2.4
+      );
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.arc(width * 0.5, height * 0.5, radiusPx * 1.16, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(57, 255, 20, 0.26)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    function animate(now) {
+      requestAnimationFrame(animate);
+
+      const delta = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+
+      let vx = dragState.isDragging ? 0 : idleVelocity.x;
+      let vy = dragState.isDragging ? 0 : idleVelocity.y;
+      let vz = dragState.isDragging ? 0 : idleVelocity.z;
+
+      if (rolling) {
+        const elapsed = now - rollStart;
+        const t = Math.min(elapsed / rollDuration, 1);
+        const decay = Math.pow(1 - t, 3);
+
+        vx = idleVelocity.x + launchVelocity.x * decay;
+        vy = idleVelocity.y + launchVelocity.y * decay;
+        vz = idleVelocity.z + launchVelocity.z * decay;
+
+        if (t >= 1) {
+          rolling = false;
+          const sign = () => (Math.random() < 0.5 ? -1 : 1);
+          idleVelocity = {
+            x: (0.25 + Math.random() * 0.15) * sign(),
+            y: (0.18 + Math.random() * 0.14) * sign(),
+            z: (0.11 + Math.random() * 0.09) * sign()
+          };
+          const selectedFeeling = pickFeeling();
+          feelingText.textContent = selectedFeeling;
+          typeReflectionMessage(`i feel ${selectedFeeling} when...`);
+          rollButton.disabled = false;
+          rollButton.textContent = "Roll the Ball";
+        }
+      }
+
+      rotation.x += vx * delta;
+      rotation.y += vy * delta;
+      rotation.z += vz * delta;
+
+      drawBall();
+    }
+
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
