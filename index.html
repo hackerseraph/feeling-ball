@@ -157,6 +157,21 @@
       cursor: not-allowed;
     }
 
+    .github-link {
+      font-size: clamp(0.5rem, 1.4vw, 0.6rem);
+      color: var(--text);
+      opacity: 0.7;
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      transition: opacity 0.2s ease, text-shadow 0.2s ease;
+      margin-top: 0.5rem;
+    }
+
+    .github-link:hover {
+      opacity: 1;
+      text-shadow: 0 0 8px rgba(57, 255, 20, 0.5);
+    }
+
     @media (max-width: 700px) {
       body {
         align-items: stretch;
@@ -195,6 +210,8 @@
     <div id="reflectionText" class="reflection"></div>
 
     <button id="rollButton" type="button">Roll the Ball</button>
+    
+    <a href="https://github.com/hackerseraph/feeling-ball" class="github-link" target="_blank" rel="noopener noreferrer">github</a>
   </main>
 
   <script>
