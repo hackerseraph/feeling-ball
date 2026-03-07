@@ -12,8 +12,6 @@ The physical version has been used for years by therapists, teachers, and counse
 - Learn that emotions are normal and everyone experiences them
 - Develop emotional intelligence through repeated reflection
 
-Popular versions include the [Feelings Thumball](https://www.trainerswarehouse.com/feelings-thumballs) and similar therapeutic balls designed specifically for emotional learning.
-
 ## Why a Digital Version?
 
 You can't always have a physical ball with you. Therapy sessions end, school counselors have limited supplies, and families don't always have access to specialized tools. This app solves that problem.
@@ -49,12 +47,6 @@ Just open `index.html` in any modern web browser. No build process, no dependenc
 ## Background
 
 This project was inspired by the therapeutic value of physical feeling balls and the need to make emotional learning tools more accessible. The original Thumball concept has been helping people process emotions since the early 2000s, particularly in educational and therapeutic settings where concrete, playful tools help break down barriers to emotional expression.
-
-## Related Resources
-
-- [Thumball Feelings Game](https://www.trainerswarehouse.com/feelings-thumballs) - Original physical version
-- [Social Emotional Learning with Feeling Balls](https://www.counselor-resources.com/) - Counseling resources
-- [Emotion Regulation Tools for Kids](https://www.therapistaid.com/) - Additional therapeutic materials
 
 ## License
 
