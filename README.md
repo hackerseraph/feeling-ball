@@ -1,5 +1,10 @@
 # Feeling Ball
 
+## Play Now
+
+- Live app: https://hackerseraph.github.io/feeling-ball/
+- GitHub README/front page: https://github.com/hackerseraph/feeling-ball#readme
+
 In loving memory of Dr. Rita Goss.
 
 A digital version of the therapeutic feeling ball game, built to help kids and adults recognize and express emotions anywhere, anytime.
