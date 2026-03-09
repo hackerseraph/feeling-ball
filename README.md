@@ -4,6 +4,8 @@ In loving memory of Dr. Rita Goss.
 
 A digital version of the therapeutic feeling ball game, built to help kids and adults recognize and express emotions anywhere, anytime.
 
+![Feeling Ball screenshot](screenshot.png)
+
 ## What is a Feeling Ball?
 
 The feeling ball (also known as a Thumball) is a hands-on therapeutic tool used in counseling, classrooms, and group therapy settings. It's a soft, throwable ball covered with emotion words and prompts. When someone catches it, they read the word under their thumb and share a time they felt that way.
