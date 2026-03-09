@@ -1,5 +1,7 @@
 # Feeling Ball
 
+In loving memory of Dr. Rita Goss.
+
 A digital version of the therapeutic feeling ball game, built to help kids and adults recognize and express emotions anywhere, anytime.
 
 ## What is a Feeling Ball?
